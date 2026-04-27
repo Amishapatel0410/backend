@@ -1,24 +1,55 @@
+
 const express = require("express");
+const cookieParser = require("cookie-parser");
+const path = require("path");
+const session = require("express-session");     
+
+
 const app = express();
-const { connectDB } = require("./models/config/db");
+const ejs = require("ejs");
 
-app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.set('view engine','ejs');
+app.use(cookieParser());
 
-connectDB("mongodb://127.0.0.1:27017/urlShortener")
-.then(() => console.log("MongoDB connected"))
-.catch((err) => console.log(err));
+app.use(
+    session({  
+        secret: "mySecretKey",
+        resave: false,
+        saveUninitialized: false,
+    })
+);
 
-
+app.set("view engine", "ejs");
 app.get("/", (req, res) => {
-    res.render('index');
+    res.render("login");
+});
+
+app.get("/home",(req,res)=>{
+    if(!req.session.user){
+        return res.redirect("/");
+    }
+    res.render("home",{username:req.session.user});
 });
 
 
-
-app.listen(5400, () => {
-    console.log("Server running on http://localhost:5400");
+app.post("/login",(req,res)=>{
+    const {username} = req.body;
+    req.session.user = username;
+    res.redirect("/home");
+})
+app.get("/profile",(req,res)=>{
+    if(!req.session.user){
+         app.render("profile");
+    }
+   res.render("profile",{username:req.session.user});
+});
+app.get("/logout",(req,res)=>{
+    req.session.destroy(()=>{
+      app.render("logout");
+    });
+    
 });
 
-
+app.listen(4000, () => {
+    console.log("Server running on port 4000");
+});
